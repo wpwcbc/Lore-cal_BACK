@@ -2,6 +2,7 @@ import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import app from './app';
 import { StoryModel } from './models/storyModel';
+import { requireEnv } from './utils/requireEnv';
 
 let server: import('http').Server | undefined;
 
@@ -17,12 +18,14 @@ process.on('uncaughtException', (err) => {
 
 dotenv.config();
 
-const PORT = Number(process.env.PORT)!;
-const MONGODB_URI = process.env.MONGODB_URI!.replace('<PASSWORD>', process.env.DB_PASSWORD!);
-const DB_NAME = process.env.DB_NAME!;
+const PORT = Number(process.env.PORT) || 3000;
+const MONGODB_URI_TEMPLATE = requireEnv('MONGODB_URI');
+const DB_PASSWORD = requireEnv('DB_PASSWORD');
+
+const MONGODB_URI = MONGODB_URI_TEMPLATE.replace('<PASSWORD>', DB_PASSWORD);
+const DB_NAME = requireEnv('DB_NAME');
 
 // Log the environment variables
-console.log('[env] MONGODB_URI:', MONGODB_URI);
 console.log('[env] DB_NAME:', DB_NAME);
 console.log('[env] PORT:', PORT);
 
