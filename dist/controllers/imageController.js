@@ -39,33 +39,24 @@ const uploadBufferToCloudinary = async (buffer, folder) => {
     });
 };
 const uploadImage = async (req, res) => {
-    try {
-        if (!req.file) {
-            return res.status(400).json({
-                status: 'error',
-                message: 'No file uploaded',
-            });
-        }
-        const folder = process.env.CLOUDINARY_FOLDER;
-        const result = await uploadBufferToCloudinary(req.file.buffer, folder);
-        // Success
-        res.status(201).json({
-            status: 'success',
-            data: {
-                url: result.secure_url,
-                publicId: result.public_id,
-                width: result.width,
-                height: result.height,
-                format: result.format,
-            },
-        });
-    }
-    catch (error) {
-        res.status(500).json({
+    if (!req.file) {
+        return res.status(400).json({
             status: 'error',
-            message: 'Failed to upload image',
-            error: error.message,
+            message: 'No file uploaded',
         });
     }
+    const folder = process.env.CLOUDINARY_FOLDER;
+    const result = await uploadBufferToCloudinary(req.file.buffer, folder);
+    // Success
+    res.status(201).json({
+        status: 'success',
+        data: {
+            url: result.secure_url,
+            publicId: result.public_id,
+            width: result.width,
+            height: result.height,
+            format: result.format,
+        },
+    });
 };
 exports.uploadImage = uploadImage;

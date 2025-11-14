@@ -17,6 +17,7 @@ import { commentRouter } from './routes/commentRoute';
 import { getUser } from './controllers/authController';
 import { userRouter } from './routes/userRoute';
 import { geocodingRouter } from './routes/geocodingRoute';
+import { getHealth } from './controllers/healthController';
 
 const app = express();
 
@@ -33,6 +34,7 @@ app.use(express.json({ limit: '10kb' }));
 const endpoint: string = '/api/v1';
 
 // Routes
+app.get(`${endpoint}/health`, getHealth);
 app.use(`${endpoint}/auth`, authRouter);
 app.use(`${endpoint}/users`, getUser, userRouter);
 app.use(`${endpoint}/stories`, getUser, storyRouter);
