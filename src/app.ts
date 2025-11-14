@@ -34,7 +34,7 @@ app.use(express.json({ limit: '10kb' }));
 const endpoint: string = '/api/v1';
 
 // Routes
-app.get(`${endpoint}/health`, getHealth);
+app.use(`${endpoint}/health`, getHealth);
 app.use(`${endpoint}/auth`, authRouter);
 app.use(`${endpoint}/users`, getUser, userRouter);
 app.use(`${endpoint}/stories`, getUser, storyRouter);
