@@ -117,7 +117,7 @@ Set:
 - EXPO_PUBLIC_MAPBOX_STYLE
 - Any other required variables
 
-1. Run the app:
+4. Run the app:
 
 - Start the Expo dev server:
 
@@ -137,11 +137,25 @@ Make sure the device/emulator can reach your backend URL (e.g. use your machineâ
 
 ## Documentation
 
-<!--
-To be filled once /docs is added, for example:
-- [Architecture](./docs/architecture.md)
-- [API reference](./docs/api.md)
-- [Data model](./docs/data-model.md)
-- [Developer onboarding](./docs/onboarding.md)
-- [Runbook](./docs/runbook.md)
--->
+### C4 Model
+
+#### 1. System Context
+
+```mermaid
+C4Context
+    title Lore-cal â€“ System Context
+
+    Person(user, "User", "Reads and posts stories at different locations.")
+    System(lorecal, "Lore-cal", "Location-based storytelling platform (mobile + backend).")
+
+
+    System_Ext(locationiq, "LocationIQ", "Provides reverse geocoding API.")
+    System_Ext(mapbox, "Mapbox", "Provides map tiles and geocoding.")
+    System_Ext(cloudinary, "Cloudinary", "Stores and serves story images.")
+
+    Rel(user, lorecal, "Uses via mobile app")
+    Rel(lorecal, mapbox, "Loads maps and gets coordinates")
+    Rel(lorecal, locationiq, "Reverse geocodes coordinates to addresses")
+    Rel(lorecal, cloudinary, "Uploads and fetches story images")
+
+```
