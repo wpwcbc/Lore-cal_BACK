@@ -137,9 +137,11 @@ Make sure the device/emulator can reach your backend URL (e.g. use your machineâ
 
 ## Documentation
 
-### C4 Model
+### Architecture Overview - C4 Model
 
 #### 1. System Context
+
+At the highest level, Lore-cal is a single location-based storytelling system used by people to read and post stories tied to real-world locations. The system relies on three external services: LocationIQ for reverse geocoding coordinates into human-readable addresses, Mapbox for map tiles and geocoding, and Cloudinary for storing and serving story images.
 
 ```mermaid
 C4Context
@@ -162,6 +164,8 @@ C4Context
 ```
 
 #### 2. Container View
+
+Lore-cal is split into a React Native mobile app, a Node.js/Express backend API, and a MongoDB Atlas database. The mobile client talks only to the backend over HTTPS, while the backend is responsible for all data persistence and integrations with external providers: Mapbox for map tiles and geocoding, LocationIQ for reverse geocoding, and Cloudinary for image storage and delivery.
 
 ```mermaid
 C4Container
@@ -189,6 +193,8 @@ C4Container
 ```
 
 #### 3. Component View
+
+The Lore-cal backend is split into a thin API layer of Express controllers and a set of domain services. The mobile app calls the API layer, which delegates to dedicated components for authentication, user profiles, stories, geolocation, and media handling; these services encapsulate all access to external providers (LocationIQ, Mapbox, Cloudinary) and the MongoDB database via a shared database access module, keeping cross-cutting concerns like data persistence and third-party integrations out of the controllers.
 
 ```mermaid
 C4Component
@@ -232,5 +238,108 @@ C4Component
   Rel(mediaService, cloudinary, "Uploads and fetches images", "HTTPS")
 
   Rel(dbAccess, db, "Reads from and writes to", "MongoDB protocol")
+
+```
+
+### Data modelling - ER Diagram
+
+The core Lore-cal data model consists of users, stories, comments, and like records. Users write stories and comments; each story can have many comments, and likes are stored as separate join documents so that users can like both stories and individual comments while preserving one-like-per-user-per-target.
+
+```mermaid
+erDiagram
+  USER {
+    string id PK
+    string name
+    string email
+    string avatarUrl
+    string role
+  }
+
+  STORY {
+    string id PK
+    float lat
+    float lng
+    string category
+    string title
+    string content
+    string thumbnailUrl
+    int likeCount
+  }
+
+  COMMENT {
+    string id PK
+    string content
+    int likeCount
+  }
+
+  STORY_LIKE {
+    string id PK
+  }
+
+  COMMENT_LIKE {
+    string id PK
+  }
+
+  %% Authoring relationships
+  USER ||--o{ STORY : writes
+  USER ||--o{ COMMENT : writes
+
+  %% Story â†” Comment
+  STORY ||--o{ COMMENT : has_comments
+
+  %% Likes for stories
+  USER ||--o{ STORY_LIKE : likes_story
+  STORY ||--o{ STORY_LIKE : is_liked_in
+
+  %% Likes for comments
+  USER ||--o{ COMMENT_LIKE : likes_comment
+  COMMENT ||--o{ COMMENT_LIKE : is_liked_in
+
+  %% Comment threads (chain to top-level comment)
+  COMMENT ||--o{ COMMENT : thread_chain
+
+```
+
+### User Action Sequence - Sequence Diagram
+
+#### 1. User posting a Story
+
+When a user creates a story, the mobile app first sends the coordinates to the backend to reverse-geocode them via LocationIQ and get a human-readable venue. It then uploads the selected image to the backend, which forwards it to Cloudinary and returns an image URL. Finally, the app submits the story data (title, content, category, coord, venue, imageUrl) to the backend with a JWT; the backend verifies the token, derives the author from it, and saves the new story in MongoDB with likeCount = 0 before returning the created story to the app.
+
+```mermaid
+sequenceDiagram
+  actor User
+  participant MobileApp
+  participant BackendAPI
+  participant GeoService
+  participant MediaService
+  participant LocationIQ
+  participant Cloudinary
+  participant MongoDB
+
+  User->>MobileApp: Fill form and tap "Submit"
+
+  %% 1) Reverse geocoding via backend
+  MobileApp->>BackendAPI: POST /geo/reverse { coord }
+  BackendAPI->>GeoService: reverseGeocode(coord)
+  GeoService->>LocationIQ: GET /reverse?lat,lon
+  LocationIQ-->>GeoService: address (street, suburb, district)
+  GeoService-->>BackendAPI: venue
+  BackendAPI-->>MobileApp: venue
+
+  %% 2) Image upload via backend
+  MobileApp->>BackendAPI: POST /media/upload { imageFile }
+  BackendAPI->>MediaService: uploadImage(imageFile)
+  MediaService->>Cloudinary: POST image
+  Cloudinary-->>MediaService: image URL
+  MediaService-->>BackendAPI: image URL
+  BackendAPI-->>MobileApp: image URL
+
+  %% 3) Create story (JWT carries the user identity)
+  MobileApp->>BackendAPI: POST /stories { title, content, category, coord, venue, imageUrl }\nAuthorization: Bearer <JWT>
+  Note over BackendAPI: Verify JWT, extract userId from token
+  BackendAPI->>MongoDB: insert Story { author = userId, ..., likeCount = 0 }
+  MongoDB-->>BackendAPI: OK
+  BackendAPI-->>MobileApp: 201 Created + Story
 
 ```
