@@ -20,7 +20,7 @@ const commentLikeSchema = new mongoose.Schema(
 
 commentLikeSchema.index(
     {
-        story: 1,
+        comment: 1,
         user: 1,
     },
     { unique: true },
