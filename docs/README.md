@@ -146,16 +146,91 @@ C4Context
     title Lore-cal – System Context
 
     Person(user, "User", "Reads and posts stories at different locations.")
+
     System(lorecal, "Lore-cal", "Location-based storytelling platform (mobile + backend).")
 
 
     System_Ext(locationiq, "LocationIQ", "Provides reverse geocoding API.")
-    System_Ext(mapbox, "Mapbox", "Provides map tiles and geocoding.")
+    System_Ext(mapbox, "Mapbox", "Provides map tiles <br>and geocoding.")
     System_Ext(cloudinary, "Cloudinary", "Stores and serves story images.")
 
     Rel(user, lorecal, "Uses via mobile app")
     Rel(lorecal, mapbox, "Loads maps and gets coordinates")
     Rel(lorecal, locationiq, "Reverse geocodes coordinates to addresses")
     Rel(lorecal, cloudinary, "Uploads and fetches story images")
+
+```
+
+#### 2. Container View
+
+```mermaid
+C4Container
+    title Lore-cal – Container Diagram
+
+    Person(user, "User", "Reads and posts stories at different locations.")
+
+    System_Boundary(lorecal, "Lore-cal") {
+        Container(mobile, "Lore-cal Mobile App", "React Native / Expo", "Allows users to browse the map and create stories.")
+        Container(api, "Lore-cal Backend API", "Node.js / Express", "Handles authentication, story logic, and serves data to the app.")
+        ContainerDb(db, "Lore-cal Database", "MongoDB Atlas", "Stores users, stories, comments, and location data.")
+    }
+
+    System_Ext(mapbox, "Mapbox", "Provides map tiles and geocoding.")
+    System_Ext(locationiq, "LocationIQ", "Provides reverse geocoding API.")
+    System_Ext(cloudinary, "Cloudinary", "Stores and serves story images.")
+
+    Rel(user, mobile, "Uses", "HTTPS")
+    Rel(mobile, api, "Calls REST/JSON API", "HTTPS")
+    Rel(api, db, "Reads from and writes to", "MongoDB protocol")
+    Rel(api, mapbox, "Requests maps / geocoding", "HTTPS")
+    Rel(api, locationiq, "Reverse geocodes coordinates", "HTTPS")
+    Rel(api, cloudinary, "Uploads and fetches images", "HTTPS")
+
+```
+
+#### 3. Component View
+
+```mermaid
+C4Component
+  title Lore-cal – Backend Component Diagram
+
+  Person(user, "User", "Uses the Lore-cal mobile app.")
+  Container(mobile, "Lore-cal Mobile App", "React Native / Expo", "Provides the UI for browsing and posting stories.")
+
+  System_Boundary(lorecal, "Lore-cal Backend API") {
+    Component(apiLayer, "API Layer", "Express controllers", "Handles HTTP requests and routes them to domain services.")
+    Component(authService, "Auth Service", "Node.js module", "Handles login, signup, JWT, and current-user resolution.")
+    Component(userService, "User/Profile Service", "Node.js module", "Manages user profiles and user-related data.")
+    Component(storyService, "Story Service", "Node.js module", "Creates, reads, and lists stories.")
+    Component(geoService, "Geo Service", "Node.js module", "Wraps Mapbox/LocationIQ for geocoding and reverse geocoding.")
+    Component(mediaService, "Media Service", "Node.js module", "Wraps Cloudinary for image upload and retrieval.")
+    Component(dbAccess, "Database Access", "Node.js module (Mongoose)", "Reads and writes users, stories, and comments in MongoDB.")
+  }
+
+  ContainerDb(db, "Lore-cal Database", "MongoDB Atlas", "Stores users, stories, comments, and locations.")
+
+  System_Ext(mapbox, "Mapbox", "Map tiles and geocoding APIs.")
+  System_Ext(locationiq, "LocationIQ", "Reverse geocoding APIs.")
+  System_Ext(cloudinary, "Cloudinary", "Image storage and CDN.")
+
+  Rel(user, mobile, "Uses", "HTTPS")
+  Rel(mobile, apiLayer, "Calls REST API", "HTTPS")
+
+  Rel(apiLayer, authService, "Calls")
+  Rel(apiLayer, userService, "Calls")
+  Rel(apiLayer, storyService, "Calls")
+
+  Rel(storyService, geoService, "Resolves coordinates / addresses")
+  Rel(storyService, mediaService, "Attaches uploaded images")
+
+  Rel(authService, dbAccess, "Reads/writes user auth data")
+  Rel(userService, dbAccess, "Reads/writes user profiles")
+  Rel(storyService, dbAccess, "Reads/writes stories")
+
+  Rel(geoService, mapbox, "Uses geocoding APIs", "HTTPS")
+  Rel(geoService, locationiq, "Uses reverse geocoding APIs", "HTTPS")
+  Rel(mediaService, cloudinary, "Uploads and fetches images", "HTTPS")
+
+  Rel(dbAccess, db, "Reads from and writes to", "MongoDB protocol")
 
 ```
